@@ -1,5 +1,41 @@
 (define (square x) (* x x))
 
+(define (accumulate op initial sequence)
+  (if (null? sequence)
+      initial
+      (op (car sequence)
+          (accumulate op initial (cdr sequence)))))
+
+(define (enumerate-tree tree)
+  (cond ((null? tree) '())
+        ((not (pair? tree)) (list tree))
+        (else (append (enumerate-tree (car tree))
+                      (enumerate-tree (cdr tree))))))
+
+(define (fold-left op initial sequence)
+  (define (iter result rest)
+    (if (null? rest)
+        result
+        (iter (op result (car rest))
+              (cdr rest))))
+  (iter initial sequence))
+
+(define (fold-right op initial sequence)
+  (define (iter result rest)
+    (if (null? rest)
+        result
+        (iter (op result (car rest))
+              (cdr rest))))
+  (iter initial (reverse sequence)))
+
+(define (flatmap f xs)
+  (accumulate append '() (map f xs)))
+
+(define (enumerate-interval low high)
+   (if (> low high)
+       '()
+       (cons low (enumerate-interval (+ low 1) high))))
+
 ;; 2.17
 
 (define (last-pair xs)
@@ -164,3 +200,59 @@
       (list '())
       (let ((rest (subsets (cdr s))))
         (append rest (map (λ (x) (cons (car s) x)) rest)))))
+
+;; 2.33
+
+(define (map p xs)
+  (accumulate (λ (x y) (cons (p x) y))
+              '()
+              xs))
+
+(define (append xs ys)
+  (accumulate cons ys xs))
+
+(define (length sequence)
+  (accumulate (λ (x y) (+ y 1)) 0 sequence))
+
+;; 2.35
+
+(define (count-leaves t)
+  (accumulate + 0 (map (λ (x) 1) (enumerate-tree t))))
+
+;; 2.36
+
+(define (accumulate-n op initial xs)
+  (if (null? (car xs))
+      '()
+      (cons (accumulate op initial (map car xs))
+            (accumulate-n op initial (map cdr xs)))))
+
+;; 2.39
+
+(define (reverse' sequence)
+  (fold-right (λ (x y) (append x (list y))) '() sequence))
+
+(define (reverse'' sequence)
+  (fold-left (λ (x y) (cons y x)) '() sequence))
+
+;; 2.40
+
+(define (unique-pairs n)
+  (flatmap (λ (i)
+             (map (λ (j) (list i j))
+                  (enumerate-interval 1 (- i 1))))
+           (enumerate-interval 1 n)))
+
+;; 2.41
+
+(define (triples n s)
+  (define (equal-s? triple)
+    (= s (accumulate + 0 triple)))
+
+  (filter equal-s?
+          (flatmap (λ (i)
+                     (flatmap (λ (j)
+                                (map (λ (k) (list k j i))
+                                     (enumerate-interval 1 (- j 1))))
+                              (enumerate-interval 1 (- i 1))))
+                   (enumerate-interval 1 n))))
